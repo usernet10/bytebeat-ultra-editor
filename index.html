@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>BitBeat</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(270deg, #0ff, #80f);
+      background-size: 400% 400%;
+      animation: gradient 10s ease infinite;
+      font-family: monospace;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    textarea {
+      width: 80%;
+      max-width: 800px;
+      height: 200px;
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      padding: 1rem;
+      color: #0ff;
+      font-size: 1rem;
+      resize: vertical;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #0ff;
+    }
+
+    .controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    button, input[type="range"], select {
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 0 5px #0ff;
+      transition: all 0.3s ease;
+      font-family: monospace;
+    }
+
+    button:hover {
+      box-shadow: 0 0 15px #0ff;
+      transform: scale(1.05);
+    }
+
+    .status {
+      margin-top: 1rem;
+      font-size: 1rem;
+      text-shadow: 0 0 5px #0ff;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>BitBeat 🎵</h1>
+  <textarea id="code">// Пример:
+// t*((t&4096?t%65536<59392?7:t&7:16)+(1&t>>14))>>(3&-t>>(t&2048?2:10))|t>>(t&16384?t&4096?10:3:2))</textarea>
+
+  <div class="controls">
+    <button id="playBtn">▶️ Запуск</button>
+    <button id="stopBtn">⏸️ Стоп</button>
+    <button id="resetBtn">🔄 Сброс</button>
+    <button id="clearBtn">🗑️ Очистить</button>
+    <button id="downloadBtn">💾 Скачать</button>
+    <label>Частота:
+      <select id="hzSelect">
+        <option value="8000">8000 Hz</option>
+        <option value="11025">11025 Hz</option>
+        <option value="22050">22050 Hz</option>
+        <option value="44100" selected>44100 Hz</option>
+      </select>
+    </label>
+    <label>Скролл:
+      <input type="range" id="scroll" min="0" max="10" step="0.1" value="0">
+    </label>
+  </div>
+
+  <div class="status">
+    t = <span id="tValue">0</span>
+  </div>
+
+  <script>
+    let audioCtx, scriptNode, t = 0, playing = false, hz = 44100, scroll = 0;
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const hzSelect = document.getElementById('hzSelect');
+    const scrollInput = document.getElementById('scroll');
+    const tValue = document.getElementById('tValue');
+    const codeArea = document.getElementById('code');
+
+    playBtn.onclick = () => {
+      if (playing) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      scriptNode = audioCtx.createScriptProcessor(4096, 0, 1);
+      t = scroll * hz;
+      scriptNode.onaudioprocess = function(e) {
+        const out = e.outputBuffer.getChannelData(0);
+        const func = new Function('t', 'return ' + codeArea.value);
+        for (let i = 0; i < out.length; i++) {
+          out[i] = (func(t) & 255) / 128 - 1;
+          t++;
+        }
+        tValue.textContent = t;
+      };
+      scriptNode.connect(audioCtx.destination);
+      playing = true;
+    };
+
+    stopBtn.onclick = () => {
+      if (!playing) return;
+      scriptNode.disconnect();
+      audioCtx.close();
+      playing = false;
+    };
+
+    resetBtn.onclick = () => {
+      codeArea.value = `// Пример:
+// t*((t&4096?t%65536<59392?7:t&7:16)+(1&t>>14))>>(3&-t>>(t&2048?2:10))|t>>(t&16384?t&4096?10:3:2))`;
+    };
+
+    clearBtn.onclick = () => {
+      if (confirm('Вы точно хотите очистить весь код?')) {
+        codeArea.value = '';
+      }
+    };
+
+    downloadBtn.onclick = () => {
+      const blob = new Blob([codeArea.value], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bitbeat_code.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    hzSelect.onchange = () => {
+      hz = parseInt(hzSelect.value);
+    };
+
+    scrollInput.oninput = () => {
+      scroll = parseFloat(scrollInput.value);
+    };
+  </script>
+</body>
+</html>ateScriptProcessor(bufferSize, 0, 1);
+      scriptNode.onaudioprocess = (e) => {
+        const output = e.outputBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          if (isPaused) break;
+          let v = userCode(t) & 255;
+          output[i] = (v - 128) / 128;
+          waveData.push(output[i]);
+          if (waveData.length > canvas.width) waveData.shift();
+          t++;
+        }
+        tValue.textContent = t;
+        secValue.textContent = (t / sampleRate).toFixed(2);
+        positionSlider.max = t + bufferSize;
+        positionSlider.value = t;
+        drawWave();
+      };
+      scriptNode.connect(audioCtx.destination);
+    };
+
+    pauseBtn.onclick = () => {
+      if (scriptNode) {
+        scriptNode.disconnect();
+        isPaused = true;
+      }
+    };
+
+    stopBtn.onclick = () => {
+      if (scriptNode) {
+        scriptNode.disconnect();
+        scriptNode = null;
+      }
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+      t = 0;
+      tValue.textContent = t;
+      secValue.textContent = 0;
+      waveData = [];
+      drawWave();
+      isPaused = false;
+    };
+
+    backwardBtn.onclick = () => {
+      t -= sampleRate; if (t < 0) t = 0;
+      tValue.textContent = t;
+      positionSlider.value = t;
+    };
+
+    forwardBtn.onclick = () => {
+      t += sampleRate;
+      tValue.textContent = t;
+      positionSlider.value = t;
+    };
+
+    positionSlider.oninput = () => {
+      t = parseInt(positionSlider.value);
+      tValue.textContent = t;
+      secValue.textContent = (t / sampleRate).toFixed(2);
+    };
+
+    downloadBtn.onclick = () => {
+      const seconds = 30;
+      const totalSamples = seconds * sampleRate;
+      const wavData = new Uint8Array(totalSamples * 2);
+
+      try {
+        userCode = new Function('t', 'return ' + formulaInput.value);
+      } catch (e) {
+        alert("Ошибка в коде: " + e.message);
+        return;
+      }
+
+      for (let i = 0; i < totalSamples; i++) {
+        let v = userCode(i) & 255;
+        const sample = Math.floor(((v - 128) / 128) * 32767);
+        wavData[i * 2] = sample & 0xFF;
+        wavData[i * 2 + 1] = (sample >> 8) & 0xFF;
+      }
+
+      const header = new ArrayBuffer(44);
+      const view = new DataView(header);
+      const writeString = (view, offset, str) => {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      };
+
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + wavData.length, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, wavData.length, true);
+
+      const wavBlob = new Blob([header, wavData], { type: 'audio/wav' });
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bytebeat_custom.wav';
+      a.click();
+    };
+
+    resetBtn.onclick = () => {
+      formulaInput.value = defaultFormula;
+    };
+
+    clearBtn.onclick = () => {
+      if (confirm("❌ Вы точно хотите очистить всё?")) {
+        formulaInput.value = "";
+      }
+    };
+
+    saveProjectBtn.onclick = () => {
+      const project = {
+        formula: formulaInput.value,
+        sampleRate: sampleRate,
+        t: t
+      };
+      const json = JSON.stringify(project);
+      const encoded = btoa(json);
+      const blob = new Blob([encoded], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bytebeat_project.bbproj';
+      a.click();
+    };
+
+    loadProjectBtn.onclick = () => {
+      loadProject.click();
+    };
+
+    loadProject.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const decoded = atob(reader.result);
+          const project = JSON.parse(decoded);
+          formulaInput.value = project.formula;
+          sampleRate = project.sampleRate;
+          hzSlider.value = sampleRate;
+          hzValue.textContent = sampleRate;
+          t = project.t || 0;
+          alert("✅ Проект успешно загружен!");
+        } catch (e) {
+          alert("❌ Ошибка при расшифровке проекта!");
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    function drawWave() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#0f0";
+      ctx.beginPath();
+      for (let i = 0; i < waveData.length; i++) {
+        let x = i;
+        let y = (1 - waveData[i]) * canvas.height / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  </script>
+</body>
+</html>
