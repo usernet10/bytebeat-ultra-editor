@@ -11,5 +11,5 @@
 ✅ Сбросить код или очистить поле с предупреждением
 
 ## Как запустить
-Просто открой `index.html` в браузере или открой сайт https://usernet10.github.io/bytebeat-ultra-editor
+Просто открой сайт https://usernet10.github.io/bytebeat-ultra-editor
 
